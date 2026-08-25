@@ -12,7 +12,9 @@ trait BelongsToTenant
 
         static::creating(function ($model) {
             if (empty($model->tenant_id)) {
-                $model->tenant_id = auth()->user()?->tenant_id ?? session('tenant_id');
+                $model->tenant_id = auth()->user()?->tenant_id
+                    ?? session('tenant_id')
+                    ?? \App\Models\Tenant::first()?->id;
             }
         });
     }
