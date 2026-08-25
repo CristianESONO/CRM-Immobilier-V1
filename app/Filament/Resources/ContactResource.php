@@ -83,6 +83,30 @@ class ContactResource extends Resource
                             ->numeric(),
                     ])->columns(2),
 
+                Section::make('Statut Pipeline & Suivi Commercial')
+                    ->schema([
+                        Select::make('status')
+                            ->label('Statut du Prospect (Pipeline)')
+                            ->options([
+                                'nouveau' => '1. Nouveau',
+                                'contacte' => '2. Contacté',
+                                'qualifie' => '3. Qualifié',
+                                'rdv_planifie' => '4. RDV Planifié',
+                                'visite_planifiee' => '5. Visite Planifiée',
+                                'visite_realisee' => '6. Visite Réalisée',
+                                'proposition' => '7. Proposition (Offre / Devis)',
+                                'gagne' => '8. Gagné (Vente Signée)',
+                                'perdu' => '9. Perdu / Annulé',
+                            ])
+                            ->default('nouveau')
+                            ->required(),
+                        Select::make('assigned_to')
+                            ->label('Commercial Assigné')
+                            ->relationship('assignedTo', 'name'),
+                        DateTimePicker::make('next_action_at')
+                            ->label('Date Prochaine Action / Relance'),
+                    ])->columns(3),
+
                 Section::make('Qualification Derivée (Lecture seule)')
                     ->schema([
                         DateTimePicker::make('q_replied_at')
