@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('CRM Immobilier')
             ->colors([
                 'primary' => Color::Amber,
             ])
