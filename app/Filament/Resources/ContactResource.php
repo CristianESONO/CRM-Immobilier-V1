@@ -161,7 +161,24 @@ class ContactResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Supprimer (Conformité Loi 2008-12)')
+                    ->modalHeading('Suppression de contact (Droit à l\'oubli)')
+                    ->modalDescription('Êtes-vous sûr de vouloir supprimer définitivement ce contact et l\'ensemble de ses données personnelles conformément à la Loi 2008-12 ? cette action est irréversible.'),
             ]);
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        // Rôle Commercial : accès UNIQUEMENT à ses contacts assignés
+        if ($user && $user->role === 'commercial') {
+            $query->where('assigned_to', $user->id);
+        }
+
+        return $query;
     }
 
     public static function getPages(): array

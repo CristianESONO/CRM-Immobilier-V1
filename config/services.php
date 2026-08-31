@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN', 'mock_token'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID', 'mock_phone_number_id'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN', 'crm_whatsapp_verify_token_2026'),
+    ],
+
+    'openwa' => [
+        'url' => env('OPENWA_API_URL', 'https://mywa.tickets-place.net/api'),
+        'key' => env('OPENWA_API_KEY', 'owa_k1_e05c74e13e2a679eae14d957458d798979f5a780c3fe36e76284969fd8c3c4b0'),
+        'session_id' => env('OPENWA_SESSION_ID', '1b9201d2-932d-4cae-8b5f-c58c1d9780a1'),
+    ],
+
 ];
