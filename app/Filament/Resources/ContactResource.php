@@ -22,6 +22,12 @@ class ContactResource extends Resource
 
     protected static ?string $navigationGroup = 'CRM & Prospects';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+        return $user && in_array($user->role, ['commercial', 'admin', 'super_admin']);
+    }
+
     public static function form(Form $form): Form
     {
         return $form

@@ -12,6 +12,12 @@ class ManageWhatsAppSession extends Page
     protected static ?string $navigationGroup = 'Paramètres & Intégrations';
     protected static ?string $title = 'WhatsApp Gateway (OpenWA - YokAlma)';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+        return $user && in_array($user->role, ['admin', 'super_admin']);
+    }
+
     protected static string $view = 'filament.pages.manage-whats-app-session';
 
     public array $sessionInfo = [];
