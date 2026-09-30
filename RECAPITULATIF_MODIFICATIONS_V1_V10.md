@@ -13,10 +13,10 @@ Ce document récapitule l'ensemble des évolutions, briques logicielles, schéma
                     └──────────┬───────────┘
                                │
                                ▼
-┌──────────────┐       ┌──────────────────────┐
-│ Portail      │──────▶│   Domain Services    │
-│ Client       │       │                      │
-└──────────────┘       │ Reservation          │
+┌──────────────┐       ┌──────────────────────┐       ┌──────────────────────┐
+│ Portail      │──────▶│   Domain Services    │──────▶│ WhatsApp Gateway     │
+│ Client       │       │                      │       │ (OpenWA QR & Meta)   │
+└──────────────┘       │ Reservation          │       └──────────────────────┘
 ┌──────────────┐       │ Payment              │       ┌──────────────────────┐
 │ Portail      │──────▶│ Contract             │──────▶│ Data Governance      │
 │ Partenaire   │       │ Commission           │       │ & SaaS Provisioning  │
@@ -62,15 +62,19 @@ Ce document récapitule l'ensemble des évolutions, briques logicielles, schéma
 - **V4.3 Finance Intelligence** : Encaissements, projections de trésorerie et créances en retard.
 - **V4.4 Operational & Compliance Alerts (`OperationalAlert`)** : Détection automatique des retards contractuels et anomalies KYC.
 
-### 🔹 V5 — Workflow Engine & Automatisation (V5.1 Production Hardening)
-- **Moteur de Workflow Configurable** : `Workflow`, `WorkflowTrigger`, `WorkflowCondition`, `WorkflowAction`, `WorkflowExecution`.
-- **Hardening Concurrence** : Protection contre le double-booking et restauration de backups d'urgence par tenant.
+### 🔹 V5 — Workflow Engine & Automatisation (V5.1 à V5.3)
+- **V5.1 Moteur de Workflows & Déclencheurs Événementiels** : Modélisation complète (`Workflow`, `WorkflowTrigger`, `WorkflowCondition`, `WorkflowAction`, `WorkflowExecution`, `WorkflowExecutionStep`), écouteurs d'événements de domaine (`ReservationCreated`, `PaymentRecorded`, `ContactCreated`) et dispatch asynchrone des actions avec délais (`ExecuteWorkflowJob`).
+- **V5.2 Hardening & Résilience Concurrente** : Protection anti double-booking sur les réservations via verrouillage pessimiste transactionnel (`lockForUpdate()`), et système de snapshot d'urgence / restauration isolée par tenant.
+- **V5.3 Moteur de Séquences & Relances Intelligentes** : Enrôlement automatique de séquences de relance (`ProcessSequences`), interruption immédiate en cas de réponse du prospect (`stop_reason = replied`) pour éviter tout sur-démarchage, et commande planifiée de contrôle des alertes SLA (`CheckFirstResponseAlerts`).
 
-### 🔹 V6 — Portails, Communication Center & API Publique (V6.1 à V6.4)
+### 🔹 V6 — Portails, Communication Center & Passerelle WhatsApp (V6.1 à V6.5)
 - **V6.1 Portail Client Acquéreur** : Suivi de chantier, téléchargement des contrats et suivi des paiements.
 - **V6.2 Portail Partenaire / Prescripteur** : Soumission de prospects et suivi des commissions.
-- **V6.3 Communication Center** : Préférences de communication (Email, SMS, WhatsApp).
-- **V6.4 API Publique `/api/v1/`** : Endpoints REST sécurisés par tenant.
+- **V6.3 Communication Center** : Préférences de communication (Email, SMS, WhatsApp) et historique des messages expédiés.
+- **V6.4 API Publique `/api/v1/`** : Endpoints REST sécurisés par tenant avec rate limiting et tokens dédiés.
+- **V6.5 Passerelle WhatsApp Opérationnelle (OpenWA & Meta Cloud API)** :
+  - **OpenWA Gateway (Passerelle YokAlma)** : Page d'administration Filament dédiée (`ManageWhatsAppSession`) avec appairage par scan de **QR Code en temps réel** (rafraîchi toutes les 20s), polling du statut (`created`, `qr_ready`, `authenticating`, `ready`, `disconnected`), et interface d'envoi de tests directs.
+  - **Meta WhatsApp Cloud API & Webhooks entrants** : `WhatsAppWebhookController` pour la réception instantanée des messages prospects, la capture des sources pré-remplies par programme immobilier et le déclenchement des arrêts de séquence.
 
 ### 🔹 V7 — Écosystème Partenaires & Commission Engine (V7.1 à V7.7)
 - **V7.1 - V7.5 Cycle de Vie Stricte** : `calculated` $\rightarrow$ `validated` $\rightarrow$ `payable` $\rightarrow$ `paid`.
@@ -81,13 +85,14 @@ Ce document récapitule l'ensemble des évolutions, briques logicielles, schéma
 ### 🔹 V8 — API Platform, Outbound Webhooks & Observabilité (V8.1 à V8.4)
 - **V8.1 API Platform** : Clés d'API hachées (`ApiKey`), scopes granulaires (`leads:read`, `properties:read`, `*`), en-tête d'idempotence `X-Idempotency-Key` (24h).
 - **V8.2 Outbound Webhook Engine** : Subscriptions, livreurs asynchrones (`DispatchOutboundWebhookJob`), signatures **HMAC SHA-256** (`X-CRM-Signature`), et stratégie de retry à backoff exponentiel.
-- **V8.3 Connecteurs Externes** : Abstractions `PaymentProviderInterface`, `SignatureProviderInterface`, `NotificationProviderInterface`.
+- **V8.3 Connecteurs Externes** : Abstractions `PaymentProviderInterface`, `SignatureProviderInterface`, `NotificationProviderInterface` (avec implémentation WhatsApp hybride).
 - **V8.4 Observabilité Applicative** : Endpoint `GET /api/v1/metrics` restituant la santé du système, les performances webhooks et la profondeur de file d'attente.
 
 ### 🔹 V9 — Platform Governance & Integration Control (V9.1 à V9.5)
 - **V9.1 Event Governance** : Interface `DomainEventInterface` injectant `event_id` (UUID `evt_...`), `correlation_id` (`corr_...`) et `schema_version` (`1.0`) dans tous les événements et webhooks.
 - **V9.2 Webhook Replay Engine** : Admin Filament `WebhookSubscriptionResource` et méthode `replayDelivery()` pour réexpédier manuellement les livraisons en échec.
 - **V9.3 API Governance** : Admin Filament `ApiKeyResource` et révocation instantanée via `revoked_at`.
+- **V9.4 Audit Trail & Supervision des Intégrations (Dead-Letter Queue)** : Surveillance des livraisons en échec définitif (`failed`), traçabilité immuable des actions sensibles d'administration et alertes sur dépassement du seuil de rejeu.
 - **V9.5 Data Governance RGPD** : `DataGovernanceService` avec anonymisation PII irréversible des contacts et export complet des données tenant.
 
 ### 🔹 V10 — Industrialisation SaaS & Multi-Tenant
@@ -127,6 +132,9 @@ Ce document récapitule l'ensemble des évolutions, briques logicielles, schéma
 - `CommissionEngineService` : Calcul, validation, passage en payable et règlement immuable des commissions.
 - `PartnerAttributionService` : Attribution glissante sur 90 jours entre prospect et apporteur.
 - `OutboundWebhookDispatcherService` : Dispatching, signature HMAC SHA-256 et rejeu manuel de webhooks.
+- `OpenWaService` : Communication avec la passerelle WhatsApp OpenWA (YokAlma), gestion des sessions QR Code et envoi de messages directs.
+- `WhatsAppService` : Passerelle Meta WhatsApp Cloud API et gestion de fallback multicanal.
+- `PaymentReminderService` : Moteur de génération des relances d'échéances VEFA par WhatsApp / SMS / Email.
 - `AppObservabilityService` : Restitution des métriques métier, d'intégration et techniques.
 - `DataGovernanceService` : Anonymisation PII RGPD et export d'archive tenant.
 - `TenantProvisioningService` : Provisionnement SaaS, feature flags et contrôle des quotas.
@@ -180,6 +188,53 @@ Ce document récapitule l'ensemble des évolutions, briques logicielles, schéma
 | :--- | :--- | :--- | :--- | :--- |
 | 🏠 **Portail Client Acquéreur** | `http://localhost:8000/portal/client` | E-mail Acquéreur ou Réf. Réservation | Jeton d'accès haché SHA-256 (`buyer_portal_accesses`) | Suivi de l'avancement des travaux VEFA, téléchargement des contrats certifiés PDF (V3), consultation du solde des paiements et soumission des pièces KYC. |
 | 🤝 **Portail Partenaire Prescripteur** | `http://localhost:8000/portal/partner` | E-mail Apporteur ou N° Convention | Jeton d'accès haché SHA-256 (`partner_portal_accesses`) | Soumission de prospects avec attribution 90 jours (V7.3), suivi du cycle de vie des commissions (`calculated` $\rightarrow$ `paid`), enregistrement des RIB et avis de virement. |
+
+---
+
+### C. Sécurisation de la Navigation Back-Office par Rôle (`shouldRegisterNavigation`)
+
+Pour garantir un cloisonnement strict dès l'interface utilisateur, la visibilité des ressources et pages Filament est régie au niveau du code (commit `b84a071`) :
+
+- **Commerciaux (`commercial`)** : Accès restreint au module `ContactResource` (leurs contacts assignés). Les menus `PropertyResource`, `SourceResource`, `WorkflowResource`, `ApiKeyResource` et la passerelle WhatsApp leur sont strictement masqués.
+- **Administrateurs (`admin`, `super_admin`)** : Visibilité intégrale sur le référentiel immobilier, la configuration des sources de leads, les clés API, les abonnements webhooks et la gestion des sessions WhatsApp OpenWA (`ManageWhatsAppSession`).
+- **Observateurs (`observer`)** : Masquage total des formulaires et tables opérationnelles pour réserver l'accès aux seuls tableaux de bord décisionnels agrégés (Sales, Stock, Finance Intelligence).
+
+---
+
+## 🚀 7. Feuille de Route Déploiement & Infrastructure de Production
+
+Ce chapitre formalise les prérequis d'infrastructure, de pipeline et d'exploitation nécessaires au passage en production réelle du CRM :
+
+### 1. Base de Données Relationnelle (PostgreSQL 16)
+- **Moteur de Production** : Migration de l'environnement SQLite de développement vers **PostgreSQL 16**.
+- **Contraintes & Indexation** : Index partiels conditionnels `UNIQUE (tenant_id, phone_e164) WHERE phone_e164 IS NOT NULL`, colonnes `JSONB` pour les paramètres et étapes de workflows, index composites avec discriminant `tenant_id` en tête.
+- **Variables Serveur** : Fichier `.env.example` documenté pour la connexion `pgsql` (`DB_CONNECTION=pgsql`, `DB_HOST`, `DB_PORT=5432`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`).
+
+### 2. Gestionnaire de Files Asynchrones (Redis + Laravel Horizon)
+- **Traitement Asynchrone** : Délégation des jobs lourds (`DispatchOutboundWebhookJob`, `ExecuteWorkflowJob`, relances multicanales).
+- **Files Dédiées** : Séparation des priorités (`high`, `default`, `webhooks`, `notifications`).
+- **Supervision** : Interface Laravel Horizon pour le monitoring des débits, la latence des queues et la relance manuelle des jobs en échec.
+
+### 3. Ordonnanceur Système (Cron Daemon)
+- **Exécution Périodique** : Ajout du cron système sur le serveur hôte :
+  ```bash
+  * * * * * cd /var/www/crm && php artisan schedule:run >> /dev/null 2>&1
+  ```
+- **Commandes Métier Automatisées** :
+  - `php artisan sla:check-alerts` : Détection toutes les 15 minutes des dépassements de SLA (première réponse > 2h ouvrées).
+  - `php artisan sequences:process` : Traitement des étapes de relance des contacts avec arrêt immédiat dès réception d'une réponse.
+
+### 4. Intégrations WhatsApp en Production (Stratégie Hybride)
+- **Passerelle OpenWA (YokAlma)** : Service Node.js/Puppeteer conteneurisé gérant les sessions WhatsApp Web, avec maintien des sessions `autoReconnect` et appairage QR code via l'admin Filament.
+- **WhatsApp Cloud API (Meta)** : Numéro de secours vérifié Meta Business et validation préalable des templates de relance pour la délivrabilité hors fenêtre conversationnelle de 24h.
+- **Webhook Ingestion** : Endpoint `/api/webhooks/whatsapp` sous protection CSRF exemptée, capturant les messages entrants et assurant la déduplication instantanée.
+
+### 5. Pipeline d'Intégration & Déploiement Continu (CI/CD)
+- **GitHub Actions** :
+  - Étape 1 : Validation de syntaxe et respect des standards PSR-12 (`php-cs-fixer`).
+  - Étape 2 : Exécution automatique des **114 tests automatisés** (551 assertions).
+  - Étape 3 : Exécution bloquante du test d'étanchéité multi-tenant (`TenantIsolationTest`).
+- **Déploiement Zéro-Downtime** : Utilisation d'outils de release atomique (Envoy, Deployer ou conteneurs Docker) avec bascule de symlink après exécution de `php artisan migrate --force` et `php artisan config:cache`.
 
 
 
