@@ -31,3 +31,7 @@ Route::get('/health', function (\App\Services\Health\HealthCheckService $healthS
     $statusCode = $report['status'] === 'healthy' ? 200 : 503;
     return response()->json($report, $statusCode);
 })->name('health');
+
+Route::get('/reports/committee-pdf', [\App\Http\Controllers\ReportController::class, 'exportCommitteePdf'])
+    ->name('reports.committee-pdf');
+

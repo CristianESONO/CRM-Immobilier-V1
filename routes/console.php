@@ -16,3 +16,7 @@ Schedule::command('crm:send-payment-reminders')
     ->dailyAt('08:00')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/payment-reminders.log'));
+
+Schedule::command('sequences:process')->hourly();
+Schedule::command('contacts:check-alerts')->everyFifteenMinutes();
+

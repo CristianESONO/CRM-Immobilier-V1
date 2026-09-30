@@ -27,3 +27,8 @@ Route::prefix('v1')->middleware([TenantApiMiddleware::class])->group(function ()
 Route::prefix('v1/scoped')->middleware([ApiScopeMiddleware::class . ':properties:read'])->group(function () {
     Route::get('/properties', [ApiPropertyController::class, 'properties']);
 });
+
+// WhatsApp Cloud API Webhooks
+Route::get('/v1/webhooks/whatsapp', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'verify']);
+Route::post('/v1/webhooks/whatsapp', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'handle']);
+
