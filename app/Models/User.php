@@ -4,11 +4,13 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -79,5 +81,11 @@ class User extends Authenticatable
     public function canManageFinancials(): bool
     {
         return in_array($this->role, ['super_admin', 'admin'], true);
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->is_active === true
+            && in_array($this->role, ['super_admin', 'admin', 'commercial', 'observer'], true);
     }
 }
